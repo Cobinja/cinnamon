@@ -75,6 +75,11 @@ create_corner_material (StCornerSpec *corner)
   guint8 *data;
   guint size;
   guint max_border_width;
+  gdouble angle = 0;
+  
+  if (corner->border_width_1 > 0) {
+    angle = atan((double) corner->border_width_2 / corner->border_width_1);
+  }
 
   max_border_width = MAX(corner->border_width_2, corner->border_width_1);
   size = 2 * MAX(max_border_width, corner->radius);
@@ -89,78 +94,103 @@ create_corner_material (StCornerSpec *corner)
   cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
   cairo_scale (cr, size, size);
 
-  if (max_border_width <= corner->radius)
-    {
-      double x_radius, y_radius;
-
-      if (max_border_width != 0)
-        {
-          cairo_set_source_rgba (cr,
-                                 corner->border_color_1.red / 255.,
-                                 corner->border_color_1.green / 255.,
-                                 corner->border_color_1.blue / 255.,
-                                 corner->border_color_1.alpha / 255.);
-
-          cairo_arc (cr, 0.5, 0.5, 0.5, 0, 2 * M_PI);
-          cairo_fill (cr);
-        }
-
-      cairo_set_source_rgba (cr,
-                             corner->color.red / 255.,
-                             corner->color.green / 255.,
-                             corner->color.blue / 255.,
-                             corner->color.alpha / 255.);
-
-      x_radius = 0.5 * (1.0 - (double) corner->border_width_2 / corner->radius);
-      y_radius = 0.5 * (1.0 - (double) corner->border_width_1 / corner->radius);
-
-      /* TOPRIGHT */
-      elliptical_arc (cr,
-                      0.5, 0.5,
-                      x_radius, y_radius,
-                      3 * M_PI / 2, 2 * M_PI);
-
-      /* BOTTOMRIGHT */
-      elliptical_arc (cr,
-                      0.5, 0.5,
-                      x_radius, y_radius,
-                      0, M_PI / 2);
-
-      /* TOPLEFT */
-      elliptical_arc (cr,
-                      0.5, 0.5,
-                      x_radius, y_radius,
-                      M_PI, 3 * M_PI / 2);
-
-      /* BOTTOMLEFT */
-      elliptical_arc (cr,
-                      0.5, 0.5,
-                      x_radius, y_radius,
-                      M_PI / 2, M_PI);
-
-      cairo_fill (cr);
-    }
-  else
-    {
-      double radius;
-
-      radius = (gdouble)corner->radius / max_border_width;
-
+  if (max_border_width <= corner->radius) {
+    double x_radius, y_radius;
+    // outer border
+    if (max_border_width != 0) {
+      // draw a full circle in border_color_1
       cairo_set_source_rgba (cr,
                              corner->border_color_1.red / 255.,
                              corner->border_color_1.green / 255.,
                              corner->border_color_1.blue / 255.,
                              corner->border_color_1.alpha / 255.);
+      cairo_arc (cr, 0.5, 0.5, 0.5, 0., 2 * M_PI);
+      cairo_fill(cr);
 
-      cairo_arc (cr, radius, radius, radius, M_PI, 3 * M_PI / 2);
-      cairo_line_to (cr, 1.0 - radius, 0.0);
-      cairo_arc (cr, 1.0 - radius, radius, radius, 3 * M_PI / 2, 2 * M_PI);
-      cairo_line_to (cr, 1.0, 1.0 - radius);
-      cairo_arc (cr, 1.0 - radius, 1.0 - radius, radius, 0, M_PI / 2);
-      cairo_line_to (cr, radius, 1.0);
-      cairo_arc (cr, radius, 1.0 - radius, radius, M_PI / 2, M_PI);
-      cairo_fill (cr);
+      // draw partial circles in border_color_2 where needed
+      cairo_set_source_rgba (cr,
+                             corner->border_color_2.red / 255.,
+                             corner->border_color_2.green / 255.,
+                             corner->border_color_2.blue / 255.,
+                             corner->border_color_2.alpha / 255.);
+
+      cairo_arc(cr, 0.5, 0.5, 0.5, M_PI_2 - angle, M_PI_2);
+      cairo_line_to(cr, 0.5, 0.5);
+      cairo_close_path(cr);
+      cairo_fill(cr);
+
+      cairo_arc(cr, 0.5, 0.5, 0.5, M_PI_2 + angle, M_PI);
+      cairo_line_to(cr, 0.5, 0.5);
+      cairo_close_path(cr);
+      cairo_fill(cr);
+  
+      cairo_arc(cr, 0.5, 0.5, 0.5, 3 * M_PI_2 - angle, 3 * M_PI_2);
+      cairo_line_to(cr, 0.5, 0.5);
+      cairo_close_path(cr);
+      cairo_fill(cr);
+  
+      cairo_arc(cr, 0.5, 0.5, 0.5, 3 * M_PI_2 + angle, 2 * M_PI);
+      cairo_line_to(cr, 0.5, 0.5);
+      cairo_close_path(cr);
+      cairo_fill(cr);
     }
+    // inner border
+    cairo_set_source_rgba (cr,
+                           corner->color.red / 255.,
+                           corner->color.green / 255.,
+                           corner->color.blue / 255.,
+                           corner->color.alpha / 255.);
+
+    x_radius = 0.5 * (1.0 - (double) corner->border_width_2 / corner->radius);
+    y_radius = 0.5 * (1.0 - (double) corner->border_width_1 / corner->radius);
+
+    /* TOPRIGHT */
+    elliptical_arc (cr,
+                    0.5, 0.5,
+                    x_radius, y_radius,
+                    3 * M_PI_2, 2 * M_PI);
+
+    /* BOTTOMRIGHT */
+    elliptical_arc (cr,
+                    0.5, 0.5,
+                    x_radius, y_radius,
+                    0, M_PI_2);
+
+    /* TOPLEFT */
+    elliptical_arc (cr,
+                    0.5, 0.5,
+                    x_radius, y_radius,
+                    M_PI, 3 * M_PI_2);
+
+    /* BOTTOMLEFT */
+    elliptical_arc (cr,
+                    0.5, 0.5,
+                    x_radius, y_radius,
+                    M_PI_2, M_PI);
+
+    cairo_fill (cr);
+  }
+  else {
+    double radius;
+
+    radius = (gdouble)corner->radius / max_border_width;
+
+    cairo_set_source_rgba (cr,
+                           corner->border_color_1.red / 255.,
+                           corner->border_color_1.green / 255.,
+                           corner->border_color_1.blue / 255.,
+                           corner->border_color_1.alpha / 255.);
+
+    cairo_arc (cr, radius, radius, radius, M_PI, 3 * M_PI / 2);
+    cairo_line_to (cr, 1.0 - radius, 0.0);
+    cairo_arc (cr, 1.0 - radius, radius, radius, 3 * M_PI / 2, 2 * M_PI);
+    cairo_line_to (cr, 1.0, 1.0 - radius);
+    cairo_arc (cr, 1.0 - radius, 1.0 - radius, radius, 0, M_PI / 2);
+    cairo_line_to (cr, radius, 1.0);
+    cairo_arc (cr, radius, 1.0 - radius, radius, M_PI / 2, M_PI);
+    cairo_fill (cr);
+  }
+  
   cairo_destroy (cr);
 
   cairo_surface_destroy (surface);
@@ -358,16 +388,16 @@ st_theme_node_lookup_corner (StThemeNode    *node,
   switch (corner_id)
     {
       case ST_CORNER_TOPLEFT:
-        over (&node->border_color[ST_SIDE_TOP], &corner.color, &corner.border_color_1);
-        over (&node->border_color[ST_SIDE_LEFT], &corner.color, &corner.border_color_2);
+        over (&node->border_color[ST_SIDE_LEFT], &corner.color, &corner.border_color_1);
+        over (&node->border_color[ST_SIDE_TOP], &corner.color, &corner.border_color_2);
         break;
       case ST_CORNER_TOPRIGHT:
         over (&node->border_color[ST_SIDE_TOP], &corner.color, &corner.border_color_1);
         over (&node->border_color[ST_SIDE_RIGHT], &corner.color, &corner.border_color_2);
         break;
       case ST_CORNER_BOTTOMRIGHT:
-        over (&node->border_color[ST_SIDE_BOTTOM], &corner.color, &corner.border_color_1);
-        over (&node->border_color[ST_SIDE_RIGHT], &corner.color, &corner.border_color_2);
+        over (&node->border_color[ST_SIDE_RIGHT], &corner.color, &corner.border_color_1);
+        over (&node->border_color[ST_SIDE_BOTTOM], &corner.color, &corner.border_color_2);
         break;
       case ST_CORNER_BOTTOMLEFT:
         over (&node->border_color[ST_SIDE_BOTTOM], &corner.color, &corner.border_color_1);
@@ -1525,17 +1555,18 @@ st_theme_node_paint_borders (StThemeNode           *node,
   int max_border_radius = 0;
   int max_width_radius[4];
   int corner_id, side_id;
-  ClutterColor border_color;
+  //ClutterColor border_color;
   guint8 alpha;
 
   width = box->x2 - box->x1;
   height = box->y2 - box->y1;
 
   /* TODO - support non-uniform border colors */
-  get_arbitrary_border_color (node, &border_color);
+  //get_arbitrary_border_color (node, &border_color);
 
-  for (side_id = 0; side_id < 4; side_id++)
+  for (side_id = 0; side_id < 4; side_id++) {
     border_width[side_id] = st_theme_node_get_border_width(node, side_id);
+  }
 
   st_theme_node_reduce_border_radius (node, border_radius);
 
@@ -1551,74 +1582,119 @@ st_theme_node_paint_borders (StThemeNode           *node,
       max_width_radius[corner_id] = MAX(MAX(border_width_1, border_width_2),
                                         border_radius[corner_id]);
     }
-
+  
   /* borders */
-  if (border_width[ST_SIDE_TOP] > 0 ||
-      border_width[ST_SIDE_RIGHT] > 0 ||
-      border_width[ST_SIDE_BOTTOM] > 0 ||
-      border_width[ST_SIDE_LEFT] > 0)
-    {
-      ClutterColor effective_border;
-      gboolean skip_corner_1, skip_corner_2;
-      float x1, y1, x2, y2;
-
-      over (&border_color, &node->background_color, &effective_border);
-      alpha = paint_opacity * effective_border.alpha / 255;
-
-      if (alpha > 0)
-        {
-          cogl_set_source_color4ub (effective_border.red,
-                                    effective_border.green,
-                                    effective_border.blue,
-                                    alpha);
-
-          /* NORTH */
-          skip_corner_1 = border_radius[ST_CORNER_TOPLEFT] > 0;
-          skip_corner_2 = border_radius[ST_CORNER_TOPRIGHT] > 0;
-
-          x1 = skip_corner_1 ? max_width_radius[ST_CORNER_TOPLEFT] : 0;
-          y1 = 0;
-          x2 = skip_corner_2 ? width - max_width_radius[ST_CORNER_TOPRIGHT] : width;
-          y2 = border_width[ST_SIDE_TOP];
-          cogl_rectangle (x1, y1, x2, y2);
-
-          /* EAST */
-          skip_corner_1 = border_radius[ST_CORNER_TOPRIGHT] > 0;
-          skip_corner_2 = border_radius[ST_CORNER_BOTTOMRIGHT] > 0;
-
-          x1 = width - border_width[ST_SIDE_RIGHT];
-          y1 = skip_corner_1 ? max_width_radius[ST_CORNER_TOPRIGHT]
-                             : border_width[ST_SIDE_TOP];
-          x2 = width;
-          y2 = skip_corner_2 ? height - max_width_radius[ST_CORNER_BOTTOMRIGHT]
-                             : height - border_width[ST_SIDE_BOTTOM];
-          cogl_rectangle (x1, y1, x2, y2);
-
-          /* SOUTH */
-          skip_corner_1 = border_radius[ST_CORNER_BOTTOMLEFT] > 0;
-          skip_corner_2 = border_radius[ST_CORNER_BOTTOMRIGHT] > 0;
-
-          x1 = skip_corner_1 ? max_width_radius[ST_CORNER_BOTTOMLEFT] : 0;
-          y1 = height - border_width[ST_SIDE_BOTTOM];
-          x2 = skip_corner_2 ? width - max_width_radius[ST_CORNER_BOTTOMRIGHT]
-                             : width;
-          y2 = height;
-          cogl_rectangle (x1, y1, x2, y2);
-
-          /* WEST */
-          skip_corner_1 = border_radius[ST_CORNER_TOPLEFT] > 0;
-          skip_corner_2 = border_radius[ST_CORNER_BOTTOMLEFT] > 0;
-
-          x1 = 0;
-          y1 = skip_corner_1 ? max_width_radius[ST_CORNER_TOPLEFT]
-                             : border_width[ST_SIDE_TOP];
-          x2 = border_width[ST_SIDE_LEFT];
-          y2 = skip_corner_2 ? height - max_width_radius[ST_CORNER_BOTTOMLEFT]
-                             : height - border_width[ST_SIDE_BOTTOM];
-          cogl_rectangle (x1, y1, x2, y2);
-        }
+  
+  /* TOP */
+  if (border_width[ST_SIDE_TOP] > 0) {
+    ClutterColor effective_border, border_color;
+    gboolean skip_corner_1, skip_corner_2;
+    float x1, y1, x2, y2;
+    
+    st_theme_node_get_border_color(node, ST_SIDE_TOP, &border_color);
+    
+    over (&border_color, &node->background_color, &effective_border);
+    alpha = paint_opacity * effective_border.alpha / 255;
+    
+    if (alpha > 0) {
+      cogl_set_source_color4ub (effective_border.red,
+                                effective_border.green,
+                                effective_border.blue,
+                                alpha);
+      skip_corner_1 = border_radius[ST_CORNER_TOPLEFT] > 0;
+      skip_corner_2 = border_radius[ST_CORNER_TOPRIGHT] > 0;
+      
+      x1 = skip_corner_1 ? max_width_radius[ST_CORNER_TOPLEFT] : 0;
+      y1 = 0;
+      x2 = skip_corner_2 ? width - max_width_radius[ST_CORNER_TOPRIGHT] : width;
+      y2 = border_width[ST_SIDE_TOP];
+      cogl_rectangle (x1, y1, x2, y2);
     }
+  }
+  
+  /* RIGHT */
+  if (border_width[ST_SIDE_RIGHT] > 0) {
+    ClutterColor effective_border, border_color;
+    gboolean skip_corner_1, skip_corner_2;
+    float x1, y1, x2, y2;
+    st_theme_node_get_border_color(node, ST_SIDE_RIGHT, &border_color);
+    
+    over (&border_color, &node->background_color, &effective_border);
+    alpha = paint_opacity * effective_border.alpha / 255;
+    
+    if (alpha > 0) {
+      cogl_set_source_color4ub (effective_border.red,
+                                effective_border.green,
+                                effective_border.blue,
+                                alpha);
+      skip_corner_1 = border_radius[ST_CORNER_TOPRIGHT] > 0;
+      skip_corner_2 = border_radius[ST_CORNER_BOTTOMRIGHT] > 0;
 
+      x1 = width - border_width[ST_SIDE_RIGHT];
+      y1 = skip_corner_1 ? max_width_radius[ST_CORNER_TOPRIGHT]
+                         : border_width[ST_SIDE_TOP];
+      x2 = width;
+      y2 = skip_corner_2 ? height - max_width_radius[ST_CORNER_BOTTOMRIGHT]
+                         : height - border_width[ST_SIDE_BOTTOM];
+      cogl_rectangle (x1, y1, x2, y2);
+    }
+  }
+  
+  /* BOTTOM */
+  if (border_width[ST_SIDE_BOTTOM] > 0) {
+    ClutterColor effective_border, border_color;
+    gboolean skip_corner_1, skip_corner_2;
+    float x1, y1, x2, y2;
+    st_theme_node_get_border_color(node, ST_SIDE_BOTTOM, &border_color);
+    
+    over (&border_color, &node->background_color, &effective_border);
+    alpha = paint_opacity * effective_border.alpha / 255;
+    
+    if (alpha > 0) {
+      cogl_set_source_color4ub (effective_border.red,
+                                effective_border.green,
+                                effective_border.blue,
+                                alpha);
+      skip_corner_1 = border_radius[ST_CORNER_BOTTOMLEFT] > 0;
+      skip_corner_2 = border_radius[ST_CORNER_BOTTOMRIGHT] > 0;
+
+      x1 = skip_corner_1 ? max_width_radius[ST_CORNER_BOTTOMLEFT] : 0;
+      y1 = height - border_width[ST_SIDE_BOTTOM];
+      x2 = skip_corner_2 ? width - max_width_radius[ST_CORNER_BOTTOMRIGHT]
+                         : width;
+      y2 = height;
+      cogl_rectangle (x1, y1, x2, y2);
+    }
+  }
+  
+  /* LEFT */
+  if (border_width[ST_SIDE_LEFT] > 0) {
+    ClutterColor effective_border, border_color;
+    gboolean skip_corner_1, skip_corner_2;
+    float x1, y1, x2, y2;
+    st_theme_node_get_border_color(node, ST_SIDE_LEFT, &border_color);
+    
+    over (&border_color, &node->background_color, &effective_border);
+    alpha = paint_opacity * effective_border.alpha / 255;
+    
+    if (alpha > 0) {
+      cogl_set_source_color4ub (effective_border.red,
+                                effective_border.green,
+                                effective_border.blue,
+                                alpha);
+      skip_corner_1 = border_radius[ST_CORNER_TOPLEFT] > 0;
+      skip_corner_2 = border_radius[ST_CORNER_BOTTOMLEFT] > 0;
+
+      x1 = 0;
+      y1 = skip_corner_1 ? max_width_radius[ST_CORNER_TOPLEFT]
+                         : border_width[ST_SIDE_TOP];
+      x2 = border_width[ST_SIDE_LEFT];
+      y2 = skip_corner_2 ? height - max_width_radius[ST_CORNER_BOTTOMLEFT]
+                         : height - border_width[ST_SIDE_BOTTOM];
+      cogl_rectangle (x1, y1, x2, y2);
+    }
+  }
+  
   /* corners */
   if (max_border_radius > 0 && paint_opacity > 0)
     {
