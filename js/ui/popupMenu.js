@@ -2244,6 +2244,8 @@ PopupMenu.prototype = {
         y = Math.max(y, monitor.y + topPanel);
         y = Math.min(y, monitor.y + monitor.height - natHeight - bottomPanel);
         
+        x = Math.round(x);
+        y = Math.round(y);
         return [x, y, side];
     },
     
