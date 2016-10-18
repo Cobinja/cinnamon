@@ -1658,7 +1658,11 @@ PanelContextMenu.prototype = {
     __proto__: PopupMenu.PopupMenu.prototype,
 
     _init: function(launcher, orientation, panelId) {
-        PopupMenu.PopupMenu.prototype._init.call(this, launcher.actor, 0.5, orientation, 0);
+        let alignment = 0.5;
+        if (orientation == St.Side.LEFT || orientation == St.Side.RIGHT) {
+            alignment = 0.0;
+        }
+        PopupMenu.PopupMenu.prototype._init.call(this, launcher.actor, alignment, orientation, 0);
         Main.uiGroup.add_actor(this.actor);
         this.actor.hide();
         this.panelId = panelId;
